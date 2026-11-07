@@ -1,42 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    match /users/{userId} {
-      allow create: if signedIn() && request.auth.uid == userId
-        && request.resource.data.uid == userId
-        && request.resource.data.role == 'student'
-        && request.resource.data.email == request.auth.token.email;
-      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow update: if signedIn() && request.auth.uid == userId
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email;
-      allow delete: if isAdmin();
-    }
-    match /quizzes/{quizId} {
-      allow read: if isAdmin() || (signedIn() && resource.data.published == true);
-      allow create, update, delete: if isAdmin();
-    }
-    // Private answer keys: only approved administrators may read or write.
-    match /quizKeys/{quizId} {
-      allow read, write: if isAdmin();
-    }
-    match /attempts/{attemptId} {
-      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
-      // Attempts are created and updated only by trusted Cloud Functions.
-      allow create, update, delete: if isAdmin();
-    }
-    match /results/{resultId} {
-      // Scores are written only by the trusted grading Cloud Function.
-      allow create, update, delete: if isAdmin();
-      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
-    }
-    match /{document=**} { allow read, write: if false; }
+ match /databases/{database}/documents {
+  function signedIn(){return request.auth != null;}
+  function isAdmin(){return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';}
+  match /users/{userId}{
+   allow create: if signedIn() && request.auth.uid==userId && request.resource.data.uid==userId && request.resource.data.role=='student' && request.resource.data.email==request.auth.token.email;
+   allow read: if signedIn() && (request.auth.uid==userId || isAdmin());
+   allow update: if signedIn() && request.auth.uid==userId && request.resource.data.role==resource.data.role && request.resource.data.uid==resource.data.uid && request.resource.data.email==resource.data.email;
+   allow delete: if isAdmin();
   }
+  match /quizzes/{quizId}{allow read: if isAdmin() || (signedIn() && resource.data.published==true);allow create,update,delete: if isAdmin();}
+  match /quizKeys/{quizId}{allow read,write: if isAdmin();}
+  match /attempts/{attemptId}{
+   allow read: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid);
+   allow create: if signedIn() && request.resource.data.uid==request.auth.uid && request.resource.data.status=='in_progress' && request.resource.data.keys().hasOnly(['uid','quizId','quizTitle','status','startedAt','durationMinutes','questionCount','answers','createdAt']) && request.resource.data.answers.size()==0;
+   allow update: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid && resource.data.status=='in_progress' && request.resource.data.uid==resource.data.uid && request.resource.data.quizId==resource.data.quizId && request.resource.data.status=='submitted' && request.resource.data.keys().hasOnly(['uid','quizId','quizTitle','status','startedAt','durationMinutes','questionCount','answers','createdAt','submittedAt','submittedClientAt']) && request.resource.data.answers.size()==resource.data.questionCount && request.resource.data.answers.hasOnly([0,1,2,3,-1]));
+   allow delete: if isAdmin();
+  }
+  match /results/{resultId}{allow create,update,delete: if isAdmin();allow read: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid);}
+  match /{document=**}{allow read,write: if false;}
+ }
 }
