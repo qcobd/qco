@@ -44,7 +44,7 @@ exports.submitQuiz = onCall(async (request) => {
   const uid = requireStudent(request);
   const quizId = String(request.data?.quizId || "");
   const answers = request.data?.answers;
-  if (!quizId || quizId.includes("/") || !Array.isArray(answers) || answers.some(a => !Number.isInteger(a) || a < 0 || a > 3)) {
+  if (!quizId || quizId.includes("/") || !Array.isArray(answers) || answers.some(a => !Number.isInteger(a) || a < -1 || a > 3)) {
     throw new HttpsError("invalid-argument", "Invalid quiz submission.");
   }
   const userSnap = await db.doc("users/" + uid).get();
