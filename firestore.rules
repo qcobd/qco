@@ -27,15 +27,15 @@ service cloud.firestore {
     match /quizKeys/{quizId} {
       allow read, write: if isAdmin();
     }
-    match /results/{resultId} {
-      allow create: if signedIn()
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasAll(['uid','quizId','score'])
-        && request.resource.data.score is number
-        && request.resource.data.score >= 0
-        && request.resource.data.score <= 100;
+    match /attempts/{attemptId} {
       allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
-      allow update, delete: if isAdmin();
+      // Attempts are created and updated only by trusted Cloud Functions.
+      allow create, update, delete: if isAdmin();
+    }
+    match /results/{resultId} {
+      // Scores are written only by the trusted grading Cloud Function.
+      allow create, update, delete: if isAdmin();
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
     }
     match /{document=**} { allow read, write: if false; }
   }
