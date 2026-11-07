@@ -21,7 +21,7 @@ function addQuestion(){
  const remove=document.createElement("button");remove.type="button";remove.className="text-danger";remove.textContent="Remove question";remove.onclick=()=>{card.remove();[...$("questionBuilder").children].forEach((c,i)=>c.querySelector("legend").textContent="Question "+(i+1))};footer.append(remove);card.append(footer);$("questionBuilder").append(card);
 }
 async function loadAdminData(){
- const [students,quizzes,results,attempts]=await Promise.all([getDocs(query(collection(db,"users"),where("role","==","student"),limit(200))),getDocs(query(collection(db,"quizzes"),limit(200))),getDocs(query(collection(db,"results"),limit(200))),getDocs(query(collection(db,"attempts"),where("status","==","submitted"),limit(200)))]);
+ const [students,quizzes,results,attempts]=await Promise.all([getDocs(query(collection(db,"users"),where("role","==","student"),limit(200))),getDocs(query(collection(db,"quizzes"),limit(200))),getDocs(query(collection(db,"results"),limit(200))),getDocs(query(collection(db,"submissions"),where("status","==","submitted"),limit(200)))]);
  $("adminStudentCount").textContent=students.size;$("adminQuizCount").textContent=quizzes.docs.filter(d=>d.data().published===true).length;$("adminResultCount").textContent=results.size;
  const body=$("studentRows");body.replaceChildren();if(students.empty){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=3;td.textContent="No registered students yet.";tr.append(td);body.append(tr)}
  students.forEach(s=>{const d=s.data(),tr=document.createElement("tr");[d.name||"Student",d.email||"—",d.createdAt?.toDate?.().toLocaleDateString()||"—"].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.append(td)});body.append(tr)});
@@ -42,7 +42,7 @@ async function gradeSubmission(attemptId,data,button){
  if(!confirm("Check this submission and publish its result?"))return;
  button.disabled=true;button.textContent="Checking…";
  try{
-  const attemptRef=doc(db,"attempts",attemptId),keyRef=doc(db,"quizKeys",data.quizId),keySnap=await getDoc(keyRef);
+  const attemptRef=doc(db,"submissions",attemptId),keyRef=doc(db,"quizKeys",data.quizId),keySnap=await getDoc(keyRef);
   if(!keySnap.exists())throw new Error("Answer key not found.");
   const keys=keySnap.data().answers,answers=data.answers;
   if(!Array.isArray(keys)||!Array.isArray(answers)||keys.length!==answers.length)throw new Error("Submission does not match the answer key.");
