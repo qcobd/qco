@@ -7,14 +7,14 @@ let db;
 if(!firebaseConfigured){$("quizList").textContent="Firebase setup is required. See SETUP.md.";$("resultList").textContent="Firebase setup is required.";}
 else{
  const app=initializeApp(firebaseConfig),auth=getAuth(app);db=getFirestore(app);
- $("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.replace("login.html")));
+ $("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.replace("login.html"))); $("profileForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.target.querySelector("button"),note=$("profileMessage");b.disabled=true;note.textContent="Saving profile…";try{const patch={name:$("editName").value.trim(),mobile:$("editMobile").value.trim(),school:$("editSchool").value.trim(),studentClass:$("editClass").value.trim(),updatedAt:serverTimestamp()};if(Object.values(patch).some(v=>typeof v==="string"&&!v))throw new Error("Please complete all profile fields.");await updateDoc(doc(db,"users",auth.currentUser.uid),patch);$("studentName").textContent=patch.name;$("welcomeName").textContent=patch.name.split(" ")[0];$("profileName").textContent=patch.name;note.textContent="Profile updated successfully.";note.className="message success"}catch(err){note.textContent="Could not update profile: "+err.message;note.className="message error"}finally{b.disabled=false}});
  onAuthStateChanged(auth,async user=>{
   if(!user){location.replace("login.html");return}
   try{
    const profileSnap=await getDoc(doc(db,"users",user.uid));
    if(!profileSnap.exists()||profileSnap.data().role!=="student"){await signOut(auth);location.replace("login.html");return}
    const profile=profileSnap.data(),name=profile.name||user.displayName||"Student";
-   $("studentName").textContent=name;$("welcomeName").textContent=name.split(" ")[0];$("profileName").textContent=name;$("profileEmail").textContent=user.email||"—";$("profileId").textContent=user.uid;
+   $("studentName").textContent=name;$("welcomeName").textContent=name.split(" ")[0];$("profileName").textContent=name;$("profileEmail").textContent=user.email||"—";$("profileId").textContent=user.uid; $("editName").value=profile.name||""; $("editMobile").value=profile.mobile||""; $("editSchool").value=profile.school||""; $("editClass").value=profile.studentClass||""; $("editEmail").value=user.email||profile.email||"";
    const [quizSnap,resultSnap,submissionSnap]=await Promise.all([
     getDocs(query(collection(db,"quizzes"),where("published","==",true))),
     getDocs(query(collection(db,"results"),where("uid","==",user.uid))),
