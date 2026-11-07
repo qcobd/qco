@@ -1,14 +1,79 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {getFirestore,doc,getDoc,collection,getDocs,query,where,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {getFirestore,doc,getDoc,collection,getDocs,query,where} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {getFunctions,httpsCallable} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
-const byId=id=>document.getElementById(id);
-if(!firebaseConfigured){byId("quizList").textContent="Firebase setup is required. See SETUP.md.";byId("resultList").textContent="Firebase setup is required."; }else{
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
-byId("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.replace("login.html")));
-onAuthStateChanged(auth,async user=>{if(!user){location.replace("login.html");return}try{const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists()||snap.data().role!=="student"){await signOut(auth);location.replace("login.html");return}const profile=snap.data(),name=profile.name||user.displayName||"Student";byId("studentName").textContent=name;byId("welcomeName").textContent=name.split(" ")[0];byId("profileName").textContent=name;byId("profileEmail").textContent=user.email;byId("profileId").textContent=user.uid;
-const [quizSnap,resultSnap]=await Promise.all([getDocs(query(collection(db,"quizzes"),where("published","==",true))),getDocs(query(collection(db,"results"),where("uid","==",user.uid)))]);
-byId("quizCount").textContent=quizSnap.size;byId("completedCount").textContent=resultSnap.size;let total=0;resultSnap.forEach(r=>total+=Number(r.data().score||0));byId("averageScore").textContent=resultSnap.size?Math.round(total/resultSnap.size)+"%":"—";
-byId("quizList").innerHTML=quizSnap.empty?'<p class="muted">No published quizzes yet. Check back soon.</p>':"";quizSnap.forEach(q=>{const d=q.data(),card=document.createElement("div");card.className="student-quiz-card";const head=document.createElement("div");head.className="student-quiz-head";const info=document.createElement("div"),title=document.createElement("b"),meta=document.createElement("small");title.textContent=d.title||"Untitled quiz";meta.textContent=(d.description||"QCO quiz")+" · "+(d.durationMinutes||"—")+" min · "+(d.questionCount||d.questions?.length||0)+" questions";info.append(title,meta);const start=document.createElement("button");start.type="button";start.className="outline-btn";start.textContent="View questions";head.append(info,start);const questionArea=document.createElement("div");questionArea.className="student-question-area";questionArea.hidden=true;const questions=Array.isArray(d.questions)?d.questions:[];start.addEventListener("click",()=>{const opening=questionArea.hidden;questionArea.hidden=!opening;start.textContent=opening?"Hide questions":"View questions";if(opening&&!questionArea.dataset.loaded){if(!questions.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="Questions are not available in this quiz. Please contact QCO administration.";questionArea.append(empty)}else{questions.forEach((item,index)=>{const block=document.createElement("section");block.className="student-question";const prompt=document.createElement("p");prompt.textContent=(index+1)+". "+(item.text||"Question");block.append(prompt);const options=document.createElement("ol");options.type="A";(Array.isArray(item.options)?item.options:[]).forEach(option=>{const li=document.createElement("li");li.textContent=option;options.append(li)});block.append(options);questionArea.append(block)})}questionArea.dataset.loaded="true"}});card.append(head,questionArea);byId("quizList").append(card)});
-byId("resultList").innerHTML=resultSnap.empty?'<p class="muted">Your quiz results will appear here.</p>':"";resultSnap.forEach(r=>{const d=r.data(),row=document.createElement("div");row.className="list-row";const title=document.createElement("b");title.textContent=d.quizTitle||"Quiz";const meta=document.createElement("small");meta.textContent="Score: "+(d.score??"—")+"%";row.append(title,meta);byId("resultList").append(row)});
-}catch(e){byId("quizList").textContent="Could not load dashboard data. Check Firestore setup and rules.";console.error(e)}})}
+const $=id=>document.getElementById(id);
+if(!firebaseConfigured){$("quizList").textContent="Firebase setup is required. See SETUP.md.";$("resultList").textContent="Firebase setup is required.";}
+else{
+ const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),functions=getFunctions(app,"asia-south1");
+ const startQuiz=httpsCallable(functions,"startQuiz"),submitQuiz=httpsCallable(functions,"submitQuiz");
+ $("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.replace("login.html")));
+ onAuthStateChanged(auth,async user=>{
+  if(!user){location.replace("login.html");return}
+  try{
+   const profileSnap=await getDoc(doc(db,"users",user.uid));
+   if(!profileSnap.exists()||profileSnap.data().role!=="student"){await signOut(auth);location.replace("login.html");return}
+   const profile=profileSnap.data(),name=profile.name||user.displayName||"Student";
+   $("studentName").textContent=name;$("welcomeName").textContent=name.split(" ")[0];$("profileName").textContent=name;$("profileEmail").textContent=user.email||"—";$("profileId").textContent=user.uid;
+   const [quizSnap,resultSnap]=await Promise.all([getDocs(query(collection(db,"quizzes"),where("published","==",true))),getDocs(query(collection(db,"results"),where("uid","==",user.uid)))]);
+   $("quizCount").textContent=quizSnap.size;$("completedCount").textContent=resultSnap.size;
+   let total=0;resultSnap.forEach(r=>total+=Number(r.data().score||0));$("averageScore").textContent=resultSnap.size?Math.round(total/resultSnap.size)+"%":"—";
+   $("quizList").replaceChildren();
+   if(quizSnap.empty){$("quizList").textContent="No published quizzes yet. Check back soon."}
+   quizSnap.forEach(q=>{
+    const d=q.data(),card=document.createElement("div");card.className="student-quiz-card";
+    const info=document.createElement("div"),title=document.createElement("b"),meta=document.createElement("small");
+    title.textContent=d.title||"Untitled quiz";meta.textContent=(d.description||"QCO quiz")+" · "+(d.durationMinutes||20)+" min · "+(d.questionCount||d.questions?.length||0)+" questions";info.append(title,meta);
+    const btn=document.createElement("button");btn.type="button";btn.className="primary-btn exam-start";btn.textContent="Start Exam";
+    const status=document.createElement("p");status.className="message muted";
+    btn.addEventListener("click",()=>beginExam(q.id,btn,status,card));
+    card.append(info,btn,status);$("quizList").append(card);
+   });
+   $("resultList").replaceChildren();
+   if(resultSnap.empty){$("resultList").textContent="Your quiz results will appear here."}
+   resultSnap.forEach(r=>{const d=r.data(),row=document.createElement("div");row.className="list-row";const t=document.createElement("b"),m=document.createElement("small");t.textContent=d.quizTitle||"Quiz";m.textContent="Score: "+(d.score??"—")+"%";row.append(t,m);$("resultList").append(row)});
+  }catch(e){console.error(e);$("quizList").textContent="Could not load dashboard data. "+(e.code||e.message||"Check Firestore rules.");}
+ });
+}
+async function beginExam(quizId,button,status,card){
+ button.disabled=true;status.textContent="Preparing your exam…";
+ try{
+  const response=await startQuiz({quizId}),exam=response.data;
+  renderExam(quizId,exam,card);
+ }catch(e){status.textContent=e.message||"Could not start exam.";button.disabled=false;}
+}
+function renderExam(quizId,exam,card){
+ card.replaceChildren();
+ const heading=document.createElement("h3");heading.textContent=exam.title;
+ const timer=document.createElement("p");timer.className="exam-timer";timer.setAttribute("aria-live","polite");
+ const form=document.createElement("form");form.className="exam-form";
+ const answers=[];
+ exam.questions.forEach((item,index)=>{
+  const field=document.createElement("fieldset");field.className="exam-question";
+  const legend=document.createElement("legend");legend.textContent=(index+1)+". "+(item.text||"Question");field.append(legend);
+  const group="q_"+index;
+  (Array.isArray(item.options)?item.options:[]).forEach((option,optIndex)=>{
+   const label=document.createElement("label");label.className="exam-option";
+   const radio=document.createElement("input");radio.type="radio";radio.name=group;radio.value=String(optIndex);radio.required=true;
+   label.append(radio,document.createTextNode(" "+String.fromCharCode(65+optIndex)+". "+option));field.append(label);
+  });
+  form.append(field);answers.push(()=>{const selected=form.querySelector('input[name="'+group+'"]:checked');return selected?Number(selected.value):-1});
+ });
+ const submit=document.createElement("button");submit.type="submit";submit.className="primary-btn";submit.textContent="Submit Exam";form.append(submit);
+ const note=document.createElement("p");note.className="message";
+ card.append(heading,timer,form,note);
+ const deadline=exam.startedAt+exam.durationMinutes*60000;let finished=false;
+ const tick=()=>{const left=Math.max(0,deadline-Date.now()),mins=Math.floor(left/60000),secs=Math.floor((left%60000)/1000);timer.textContent="Time remaining: "+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0");if(left<=0&&!finished){finished=true;submit.disabled=true;note.textContent="Time is over. Please submit if the system still allows; the server enforces the deadline."}};
+ tick();const interval=setInterval(tick,1000);
+ form.addEventListener("submit",async e=>{
+  e.preventDefault();if(finished&&Date.now()>deadline+5000){note.textContent="Time is over. This attempt can no longer be submitted.";return}
+  if(answers.some(get=>get()<0)){note.textContent="Please answer every question before submitting.";return}
+  if(!confirm("Submit your answers now? You cannot retake this quiz."))return;
+  finished=true;clearInterval(interval);submit.disabled=true;note.textContent="Submitting and checking your answers…";
+  try{
+   const result=await submitQuiz({quizId,answers:answers.map(get=>get())});
+   form.remove();timer.remove();note.className="message success";note.textContent="Exam submitted successfully! Your score: "+result.data.score+"% ("+result.data.correct+"/"+result.data.total+").";
+  }catch(err){finished=false;submit.disabled=false;note.className="message error";note.textContent=err.message||"Submission failed. Please contact QCO administration."}
+ });
+}
