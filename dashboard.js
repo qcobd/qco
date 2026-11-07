@@ -40,27 +40,27 @@ else{
   }catch(e){console.error(e);$("quizList").textContent="Could not load dashboard data. "+(e.code||e.message||"Check Firestore rules.");}
  });
 }
-async function beginExam(quizId,quiz,button,status,card,user){
+async function beginExam(uid,quizId,quiz,old,button,status,card){
  button.disabled=true;status.textContent="Preparing your exam…";
  try{
-  const attemptRef=doc(db,"attempts",user.uid+"_"+quizId),existing=await getDoc(attemptRef);
-  if(existing.exists()){status.textContent="You have already started or submitted this quiz.";return}
+  const submissionRef=doc(db,"submissions",uid+"_"+quizId);
   const questions=Array.isArray(quiz.questions)?quiz.questions:[];
   if(!questions.length)throw new Error("No questions are available.");
   const durationMinutes=Math.max(1,Math.min(240,Number(quiz.durationMinutes)||20));
-  const startedAt=Date.now();
-  await setDoc(attemptRef,{uid:user.uid,quizId,quizTitle:quiz.title||"QCO Quiz",status:"in_progress",startedAt,durationMinutes,questionCount:questions.length,answers:[],createdAt:serverTimestamp()});
-  renderExam(quizId,quiz.title||"QCO Quiz",questions,durationMinutes,startedAt,attemptRef,card);
+  const startedAt=old?.startedAt||Date.now();
+  if(!old)await setDoc(submissionRef,{uid,quizId,quizTitle:quiz.title||"QCO Quiz",status:"in_progress",startedAt,durationMinutes,questionCount:questions.length,createdAt:serverTimestamp()});
+  renderExam(uid,quizId,quiz.title||"QCO Quiz",questions,durationMinutes,startedAt,submissionRef,card);
  }catch(e){status.textContent=e.message||"Could not start exam.";button.disabled=false;}
 }
-function renderExam(quizId,titleText,questions,durationMinutes,startedAt,attemptRef,card){
+function renderExam(uid,quizId,titleText,questions,durationMinutes,startedAt,submissionRef,card){
  card.replaceChildren();const heading=document.createElement("h3");heading.textContent=titleText;
  const timer=document.createElement("p");timer.className="exam-timer";timer.setAttribute("aria-live","polite");
  const form=document.createElement("form");form.className="exam-form";const answers=[];
- questions.forEach((item,index)=>{const field=document.createElement("fieldset");field.className="exam-question";const legend=document.createElement("legend");legend.textContent=(index+1)+". "+(item.text||"Question");field.append(legend);const group="q_"+index;(Array.isArray(item.options)?item.options:[]).forEach((option,optIndex)=>{const label=document.createElement("label");label.className="exam-option";const radio=document.createElement("input");radio.type="radio";radio.name=group;radio.value=String(optIndex);label.append(radio,document.createTextNode(" "+String.fromCharCode(65+optIndex)+". "+option));field.append(label)});form.append(field);answers.push(()=>{const selected=form.querySelector('input[name="'+group+'"]:checked');return selected?Number(selected.value):-1})});
+ const storageKey="qco_exam_"+uid+"_"+quizId;let saved=[];try{saved=JSON.parse(localStorage.getItem(storageKey)||"[]")}catch{}
+ questions.forEach((item,index)=>{const field=document.createElement("fieldset");field.className="exam-question";const legend=document.createElement("legend");legend.textContent=(index+1)+". "+(item.text||"Question");field.append(legend);const group="q_"+index;(Array.isArray(item.options)?item.options:[]).forEach((option,optIndex)=>{const label=document.createElement("label");label.className="exam-option";const radio=document.createElement("input");radio.type="radio";radio.name=group;radio.value=String(optIndex);if(saved[index]===optIndex)radio.checked=true;radio.addEventListener("change",()=>{const values=answers.map(get=>get());values[index]=optIndex;localStorage.setItem(storageKey,JSON.stringify(values))});label.append(radio,document.createTextNode(" "+String.fromCharCode(65+optIndex)+". "+option));field.append(label)});form.append(field);answers.push(()=>{const selected=form.querySelector('input[name="'+group+'"]:checked');return selected?Number(selected.value):-1})});
  const submit=document.createElement("button");submit.type="submit";submit.className="primary-btn";submit.textContent="Submit Exam";form.append(submit);const note=document.createElement("p");note.className="message";card.append(heading,timer,form,note);
  const deadline=startedAt+durationMinutes*60000;let finished=false,saving=false;
- async function sendAnswers(auto=false){if(finished||saving)return;if(!auto&&answers.some(get=>get()<0)){note.textContent="Please answer every question before submitting.";return}if(!auto&&!confirm("Submit your answers now? You cannot retake this quiz."))return;saving=true;submit.disabled=true;note.textContent=auto?"Time is over. Submitting your answers…":"Submitting your answers…";try{await updateDoc(attemptRef,{answers:answers.map(get=>get()),status:"submitted",submittedAt:serverTimestamp(),submittedClientAt:Date.now()});finished=true;clearInterval(interval);form.remove();timer.remove();note.className="message success";note.textContent="Your answers have been submitted. QCO administration will review them and publish your result."}catch(err){saving=false;submit.disabled=false;note.className="message error";note.textContent=err.message||"Submission failed. Please try again."}}
+ async function sendAnswers(auto=false){if(finished||saving)return;if(!auto&&answers.some(get=>get()<0)){note.textContent="Please answer every question before submitting.";return}if(!auto&&!confirm("Submit your answers now? You cannot retake this quiz."))return;saving=true;submit.disabled=true;note.textContent=auto?"Time is over. Submitting your answers…":"Submitting your answers…";try{await updateDoc(submissionRef,{answers:answers.map(get=>get()),status:"submitted",submittedAt:serverTimestamp(),submittedClientAt:Date.now()});localStorage.removeItem(storageKey);finished=true;clearInterval(interval);form.remove();timer.remove();note.className="message success";note.textContent="Your answers have been submitted. QCO administration will review them and publish your result."}catch(err){saving=false;submit.disabled=false;note.className="message error";note.textContent=err.message||"Submission failed. Please try again."}}
  const interval=setInterval(()=>{const left=Math.max(0,deadline-Date.now()),mins=Math.floor(left/60000),secs=Math.floor((left%60000)/1000);timer.textContent="Time remaining: "+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0");if(left<=0&&!finished)sendAnswers(true)},1000);
  const initialLeft=Math.max(0,deadline-Date.now());timer.textContent="Time remaining: "+String(Math.floor(initialLeft/60000)).padStart(2,"0")+":"+String(Math.floor((initialLeft%60000)/1000)).padStart(2,"0");if(initialLeft===0)sendAnswers(true);
  form.addEventListener("submit",async e=>{e.preventDefault();await sendAnswers(false)});
