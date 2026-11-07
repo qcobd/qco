@@ -1,12 +1,12 @@
 // QCO Firebase configuration
-// Replace these placeholder values with your own Firebase Web App config.
-// Firebase Console → Project settings → Your apps → SDK setup and configuration.
+// Firebase Web App config for project qco-9a7a7.
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCT4HViXXy1yEcfILTL8fact1xfVqL89T8",
+  authDomain: "qco-9a7a7.firebaseapp.com",
+  projectId: "qco-9a7a7",
+  storageBucket: "qco-9a7a7.firebasestorage.app",
+  messagingSenderId: "588941778806",
+  appId: "1:588941778806:web:a77dc6f3e39889e3c96457",
+  measurementId: "G-8N6ZP7B118"
 };
-export const firebaseConfigured = !Object.values(firebaseConfig).some(value => value.startsWith("YOUR_"));
+export const firebaseConfigured = true;
