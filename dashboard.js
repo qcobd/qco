@@ -3,9 +3,10 @@ import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/fireba
 import {getFirestore,doc,getDoc,collection,getDocs,query,where,setDoc,updateDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
 const $=id=>document.getElementById(id);
+let db;
 if(!firebaseConfigured){$("quizList").textContent="Firebase setup is required. See SETUP.md.";$("resultList").textContent="Firebase setup is required.";}
 else{
- const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+ const app=initializeApp(firebaseConfig),auth=getAuth(app);db=getFirestore(app);
  $("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.replace("login.html")));
  onAuthStateChanged(auth,async user=>{
   if(!user){location.replace("login.html");return}
