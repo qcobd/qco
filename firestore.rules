@@ -3,10 +3,16 @@ service cloud.firestore {
  match /databases/{database}/documents {
   function signedIn(){return request.auth != null;}
   function isAdmin(){return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';}
+  match /counters/{counterId}{
+   allow read: if signedIn() && counterId == 'studentCounter';
+   allow create: if signedIn() && counterId == 'studentCounter' && request.resource.data.keys().hasOnly(['count','updatedAt']) && request.resource.data.count == 304;
+   allow update: if signedIn() && counterId == 'studentCounter' && request.resource.data.keys().hasOnly(['count','updatedAt']) && request.resource.data.count == resource.data.count + 1;
+   allow delete: if false;
+  }
   match /users/{userId}{
    allow create: if signedIn() && request.auth.uid==userId && request.resource.data.uid==userId && request.resource.data.role=='student' && request.resource.data.email==request.auth.token.email;
    allow read: if signedIn() && (request.auth.uid==userId || isAdmin());
-   allow update: if isAdmin() || (signedIn() && request.auth.uid==userId && request.resource.data.role==resource.data.role && request.resource.data.uid==resource.data.uid && request.resource.data.email==resource.data.email && request.resource.data.keys().hasOnly(['uid','name','email','mobile','school','studentClass','role','createdAt','updatedAt']));
+   allow update: if isAdmin() || (signedIn() && request.auth.uid==userId && request.resource.data.role==resource.data.role && request.resource.data.uid==resource.data.uid && request.resource.data.email==resource.data.email && request.resource.data.keys().hasOnly(['uid','studentId','name','email','mobile','school','studentClass','role','createdAt','updatedAt']));
    allow delete: if isAdmin();
   }
   match /quizzes/{quizId}{allow read: if isAdmin() || (signedIn() && resource.data.published==true);allow create,update,delete: if isAdmin();}
