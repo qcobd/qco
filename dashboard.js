@@ -63,17 +63,16 @@ function renderExam(quizId,exam,card){
  const submit=document.createElement("button");submit.type="submit";submit.className="primary-btn";submit.textContent="Submit Exam";form.append(submit);
  const note=document.createElement("p");note.className="message";
  card.append(heading,timer,form,note);
- const deadline=exam.startedAt+exam.durationMinutes*60000;let finished=false;
- const tick=()=>{const left=Math.max(0,deadline-Date.now()),mins=Math.floor(left/60000),secs=Math.floor((left%60000)/1000);timer.textContent="Time remaining: "+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0");if(left<=0&&!finished){finished=true;submit.disabled=true;note.textContent="Time is over. Please submit if the system still allows; the server enforces the deadline."}};
- tick();const interval=setInterval(tick,1000);
- form.addEventListener("submit",async e=>{
-  e.preventDefault();if(finished&&Date.now()>deadline+5000){note.textContent="Time is over. This attempt can no longer be submitted.";return}
-  if(answers.some(get=>get()<0)){note.textContent="Please answer every question before submitting.";return}
-  if(!confirm("Submit your answers now? You cannot retake this quiz."))return;
-  finished=true;clearInterval(interval);submit.disabled=true;note.textContent="Submitting and checking your answers…";
-  try{
-   const result=await submitQuiz({quizId,answers:answers.map(get=>get())});
-   form.remove();timer.remove();note.className="message success";note.textContent="Exam submitted successfully! Your score: "+result.data.score+"% ("+result.data.correct+"/"+result.data.total+").";
-  }catch(err){finished=false;submit.disabled=false;note.className="message error";note.textContent=err.message||"Submission failed. Please contact QCO administration."}
- });
+ const deadline=exam.startedAt+exam.durationMinutes*60000;let finished=false,submitting=false;
+ async function sendAnswers(auto=false){
+  if(submitting||finished)return;
+  if(!auto&&answers.some(get=>get()<0)){note.textContent="Please answer every question before submitting.";return}
+  if(!auto&&!confirm("Submit your answers now? You cannot retake this quiz."))return;
+  submitting=true;finished=true;clearInterval(interval);submit.disabled=true;note.textContent=auto?"Time is over. Submitting your answers…":"Submitting and checking your answers…";
+  try{const result=await submitQuiz({quizId,answers:answers.map(get=>get())});form.remove();timer.remove();note.className="message success";note.textContent="Exam submitted successfully! Your score: "+result.data.score+"% ("+result.data.correct+"/"+result.data.total+").";}
+  catch(err){submitting=false;finished=false;submit.disabled=false;note.className="message error";note.textContent=err.message||"Submission failed. Please contact QCO administration."}
+ }
+ const interval=setInterval(()=>{const left=Math.max(0,deadline-Date.now()),mins=Math.floor(left/60000),secs=Math.floor((left%60000)/1000);timer.textContent="Time remaining: "+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0");if(left<=0&&!finished)sendAnswers(true)},1000);
+ const initialLeft=Math.max(0,deadline-Date.now());timer.textContent="Time remaining: "+String(Math.floor(initialLeft/60000)).padStart(2,"0")+":"+String(Math.floor((initialLeft%60000)/1000)).padStart(2,"0");if(initialLeft===0)sendAnswers(true);
+ form.addEventListener("submit",async e=>{e.preventDefault();await sendAnswers(false)});
 }
