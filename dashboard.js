@@ -1,0 +1,14 @@
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {getFirestore,doc,getDoc,collection,getDocs,query,where,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
+const byId=id=>document.getElementById(id);
+if(!firebaseConfigured){byId("quizList").textContent="Firebase setup is required. See SETUP.md.";byId("resultList").textContent="Firebase setup is required."; }else{
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+byId("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.replace("login.html")));
+onAuthStateChanged(auth,async user=>{if(!user){location.replace("login.html");return}try{const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists()||snap.data().role!=="student"){await signOut(auth);location.replace("login.html");return}const profile=snap.data(),name=profile.name||user.displayName||"Student";byId("studentName").textContent=name;byId("welcomeName").textContent=name.split(" ")[0];byId("profileName").textContent=name;byId("profileEmail").textContent=user.email;byId("profileId").textContent=user.uid;
+const [quizSnap,resultSnap]=await Promise.all([getDocs(query(collection(db,"quizzes"),where("published","==",true))),getDocs(query(collection(db,"results"),where("uid","==",user.uid)))]);
+byId("quizCount").textContent=quizSnap.size;byId("completedCount").textContent=resultSnap.size;let total=0;resultSnap.forEach(r=>total+=Number(r.data().score||0));byId("averageScore").textContent=resultSnap.size?Math.round(total/resultSnap.size)+"%":"—";
+byId("quizList").innerHTML=quizSnap.empty?'<p class="muted">No published quizzes yet. Check back soon.</p>':"";quizSnap.forEach(q=>{const d=q.data(),card=document.createElement("div");card.className="list-row";const title=document.createElement("b");title.textContent=d.title||"Untitled quiz";const meta=document.createElement("small");meta.textContent=(d.description||"QCO quiz")+" · "+(d.durationMinutes||"—")+" min";card.append(title,meta);byId("quizList").append(card)});
+byId("resultList").innerHTML=resultSnap.empty?'<p class="muted">Your quiz results will appear here.</p>':"";resultSnap.forEach(r=>{const d=r.data(),row=document.createElement("div");row.className="list-row";const title=document.createElement("b");title.textContent=d.quizTitle||"Quiz";const meta=document.createElement("small");meta.textContent="Score: "+(d.score??"—")+"%";row.append(title,meta);byId("resultList").append(row)});
+}catch(e){byId("quizList").textContent="Could not load dashboard data. Check Firestore setup and rules.";console.error(e)}})}
