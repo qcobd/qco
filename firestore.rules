@@ -11,10 +11,10 @@ service cloud.firestore {
   }
   match /quizzes/{quizId}{allow read: if isAdmin() || (signedIn() && resource.data.published==true);allow create,update,delete: if isAdmin();}
   match /quizKeys/{quizId}{allow read,write: if isAdmin();}
-  match /attempts/{attemptId}{
+  match /submissions/{submissionId}{
    allow read: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid);
-   allow create: if signedIn() && request.resource.data.uid==request.auth.uid && request.resource.data.status=='in_progress' && request.resource.data.keys().hasOnly(['uid','quizId','quizTitle','status','startedAt','durationMinutes','questionCount','answers','createdAt']) && request.resource.data.answers.size()==0;
-   allow update: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid && resource.data.status=='in_progress' && request.resource.data.uid==resource.data.uid && request.resource.data.quizId==resource.data.quizId && request.resource.data.status=='submitted' && request.resource.data.keys().hasOnly(['uid','quizId','quizTitle','status','startedAt','durationMinutes','questionCount','answers','createdAt','submittedAt','submittedClientAt']) && request.resource.data.answers.size()==resource.data.questionCount && request.resource.data.answers.hasOnly([0,1,2,3,-1]));
+   allow create: if signedIn() && submissionId==request.auth.uid+"_"+request.resource.data.quizId && request.resource.data.uid==request.auth.uid && request.resource.data.status=='in_progress' && request.resource.data.keys().hasOnly(['uid','quizId','quizTitle','status','startedAt','durationMinutes','questionCount','createdAt']) && request.resource.data.durationMinutes>=1 && request.resource.data.durationMinutes<=240 && request.resource.data.questionCount>=1;
+   allow update: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid && resource.data.status=='in_progress' && request.resource.data.uid==resource.data.uid && request.resource.data.quizId==resource.data.quizId && request.resource.data.status=='submitted' && request.resource.data.keys().hasOnly(['uid','quizId','quizTitle','status','startedAt','durationMinutes','questionCount','createdAt','answers','submittedAt','submittedClientAt']) && request.resource.data.answers.size()==resource.data.questionCount && request.resource.data.answers.hasOnly([0,1,2,3,-1]));
    allow delete: if isAdmin();
   }
   match /results/{resultId}{allow create,update,delete: if isAdmin();allow read: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid);}
