@@ -1,8 +1,9 @@
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-ai.js";
 import {collection,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-export function initAiQuestionGenerator(app,db,auth,onSaved){
+export function initAiQuestionGenerator(app,db,auth,onSaved,appCheckReady){
  const $=id=>document.getElementById(id),form=$("aiQuestionForm");if(!form)return;let generated=[],model;
- try{model=getGenerativeModel(getAI(app,{backend:new GoogleAIBackend()}),{model:"gemini-2.5-flash",generationConfig:{responseMimeType:"application/json",temperature:.65}})}
+ if(!appCheckReady){$("aiQuestionStatus").textContent="Complete the one-time Firebase AI + App Check setup in AI_SETUP.md before generating questions.";$("aiQuestionStatus").className="message error";$("aiGenerateBtn").disabled=true;return;}
+ try{model=getGenerativeModel(getAI(app,{backend:new GoogleAIBackend()}),{model:"gemini-4-hydrogen",generationConfig:{responseMimeType:"application/json",temperature:.65}})}
  catch(e){$("aiQuestionStatus").textContent="AI setup is not ready. Enable Firebase AI Logic in Firebase Console.";return}
  form.addEventListener("submit",async e=>{e.preventDefault();const btn=$("aiGenerateBtn"),status=$("aiQuestionStatus"),preview=$("aiQuestionPreview");btn.disabled=true;$("aiSaveGeneratedBtn").hidden=true;preview.replaceChildren();status.textContent="QCO AI is preparing questions…";status.className="message";
  const subject=$("aiSubject").value,level=$("aiClass").value,language=$("aiLanguage").value,difficulty=$("aiDifficulty").value,count=Math.max(5,Math.min(20,Number($("aiCount").value)||10)),topic=$("aiTopic").value.trim();
