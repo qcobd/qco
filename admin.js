@@ -1,6 +1,6 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,collection,getDocs,query,where,limit,writeBatch,serverTimestamp,updateDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,getDocFromServer,collection,getDocs,query,where,limit,writeBatch,serverTimestamp,updateDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js";
 import {QCO_RECAPTCHA_SITE_KEY} from "./ai-config.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
@@ -9,8 +9,19 @@ let auth,db;
 if(!firebaseConfigured){msg.textContent="Firebase is not configured. Follow SETUP.md.";$("adminLoginForm").querySelector("button").disabled=true}
 else{
  const app=initializeApp(firebaseConfig);let aiAppCheckReady=false;if(QCO_RECAPTCHA_SITE_KEY && !QCO_RECAPTCHA_SITE_KEY.startsWith("ADD_")){try{initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(QCO_RECAPTCHA_SITE_KEY),isTokenAutoRefreshEnabled:true});aiAppCheckReady=true}catch(e){console.error("QCO App Check initialization failed:",e)}}auth=getAuth(app);db=getFirestore(app);
- async function verifyAdmin(user){const p=await getDoc(doc(db,"users",user.uid));return p.exists()&&p.data().role==="admin"}
- onAuthStateChanged(auth,async user=>{if(!user){loginCard.hidden=false;dashboard.hidden=true;return}try{const approved=await verifyAdmin(user);if(!approved){msg.textContent="This account does not have administrator permission.";await signOut(auth);return}loginCard.hidden=true;dashboard.hidden=false;const status=$("adminDashboardMessage");status.textContent="";try{await loadAdminData();const {initAiQuestionGenerator}=await import("./ai-question-generator.js");initAiQuestionGenerator(app,db,auth,loadAdminData,aiAppCheckReady);addQuestion()}catch(e){console.error("QCO admin data loading error:",e);status.textContent="Dashboard is open, but some data could not load: "+(e.code||e.message||"Unknown error")+". Please check the latest Firestore Rules.";status.className="message error"}}catch(e){console.error("QCO admin verification error:",e);msg.textContent="Could not verify administrator: "+(e.code||e.message||"Unknown error");}});
+ async function verifyAdmin(user){
+  const ref=doc(db,"users",user.uid);
+  const p=await getDocFromServer(ref);
+  const data=p.exists()?p.data():{};
+  console.info("QCO admin verification", {projectId:firebaseConfig.projectId, authUid:user.uid, documentExists:p.exists(), role:data.role});
+  return {approved:p.exists() && data.role==="admin", documentExists:p.exists(), role:data.role ?? null, uid:user.uid};
+}
+ onAuthStateChanged(auth,async user=>{if(!user){loginCard.hidden=false;dashboard.hidden=true;return}try{const check=await verifyAdmin(user);if(!check.approved){
+ msg.textContent=check.documentExists
+  ? "Admin permission mismatch. Signed-in UID: "+check.uid+"; Firestore role: "+String(check.role)+". Expected role: admin. Project: "+firebaseConfig.projectId+"."
+  : "Admin profile document not found. Signed-in UID: "+check.uid+". Expected document: users/"+check.uid+" in project "+firebaseConfig.projectId+".";
+ msg.className="message error";await signOut(auth);return
+}loginCard.hidden=true;dashboard.hidden=false;const status=$("adminDashboardMessage");status.textContent="";try{await loadAdminData();const {initAiQuestionGenerator}=await import("./ai-question-generator.js");initAiQuestionGenerator(app,db,auth,loadAdminData,aiAppCheckReady);addQuestion()}catch(e){console.error("QCO admin data loading error:",e);status.textContent="Dashboard is open, but some data could not load: "+(e.code||e.message||"Unknown error")+". Please check the latest Firestore Rules.";status.className="message error"}}catch(e){console.error("QCO admin verification error:",e);msg.textContent="Could not verify administrator: "+(e.code||e.message||"Unknown error");}});
  $("adminLoginForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;msg.textContent="Verifying account…";try{await signInWithEmailAndPassword(auth,$("adminEmail").value.trim(),$("adminPassword").value)}catch(err){console.error("QCO admin login error:",err);msg.textContent=err.code==="auth/invalid-credential"?"Invalid email or password.":(err.code||err.message||"Login failed. Please try again.");msg.className="message error"}finally{b.disabled=false}});
  $("adminLogout").addEventListener("click",()=>signOut(auth).then(()=>location.reload()));
  $("addQuestion").addEventListener("click",addQuestion);$("quizForm").addEventListener("submit",saveQuiz);$("downloadStudentsPdf").addEventListener("click",()=>window.print());
