@@ -1,14 +1,15 @@
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {getFirestore,doc,getDoc,collection,getDocs,query,where,limit,writeBatch,serverTimestamp,updateDoc,setDoc} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,collection,getDocs,query,where,limit,writeBatch,serverTimestamp,updateDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
+import {initAiQuestionGenerator} from "./ai-question-generator.js";
 const $=id=>document.getElementById(id),loginCard=$("adminLoginCard"),dashboard=$("adminDashboard"),msg=$("adminMessage");
 let auth,db;
 if(!firebaseConfigured){msg.textContent="Firebase is not configured. Follow SETUP.md.";$("adminLoginForm").querySelector("button").disabled=true}
 else{
  const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);
  async function verifyAdmin(user){const p=await getDoc(doc(db,"users",user.uid));return p.exists()&&p.data().role==="admin"}
- onAuthStateChanged(auth,async user=>{if(!user){loginCard.hidden=false;dashboard.hidden=true;return}try{const approved=await verifyAdmin(user);if(!approved){msg.textContent="This account does not have administrator permission.";await signOut(auth);return}loginCard.hidden=true;dashboard.hidden=false;const status=$("adminDashboardMessage");status.textContent="";try{await loadAdminData();addQuestion()}catch(e){console.error("QCO admin data loading error:",e);status.textContent="Dashboard is open, but some data could not load: "+(e.code||e.message||"Unknown error")+". Please check the latest Firestore Rules.";status.className="message error"}}catch(e){console.error("QCO admin verification error:",e);msg.textContent="Could not verify administrator: "+(e.code||e.message||"Unknown error");}});
+ onAuthStateChanged(auth,async user=>{if(!user){loginCard.hidden=false;dashboard.hidden=true;return}try{const approved=await verifyAdmin(user);if(!approved){msg.textContent="This account does not have administrator permission.";await signOut(auth);return}loginCard.hidden=true;dashboard.hidden=false;const status=$("adminDashboardMessage");status.textContent="";try{await loadAdminData();initAiQuestionGenerator(app,db,auth,loadAdminData);addQuestion()}catch(e){console.error("QCO admin data loading error:",e);status.textContent="Dashboard is open, but some data could not load: "+(e.code||e.message||"Unknown error")+". Please check the latest Firestore Rules.";status.className="message error"}}catch(e){console.error("QCO admin verification error:",e);msg.textContent="Could not verify administrator: "+(e.code||e.message||"Unknown error");}});
  $("adminLoginForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;msg.textContent="Verifying account…";try{await signInWithEmailAndPassword(auth,$("adminEmail").value.trim(),$("adminPassword").value)}catch(err){msg.textContent=err.code==="auth/invalid-credential"?"Invalid email or password.":err.message}finally{b.disabled=false}});
  $("adminLogout").addEventListener("click",()=>signOut(auth).then(()=>location.reload()));
  $("addQuestion").addEventListener("click",addQuestion);$("quizForm").addEventListener("submit",saveQuiz);$("downloadStudentsPdf").addEventListener("click",()=>window.print());
