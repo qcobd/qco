@@ -1,5 +1,5 @@
-import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-ai.js";
-import {collection,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-ai.js";
+import {collection,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-firestore.js";
 export function initAiQuestionGenerator(app,db,auth,onSaved,appCheckReady){
  const $=id=>document.getElementById(id),form=$("aiQuestionForm");if(!form)return;let generated=[],model;
  if(!appCheckReady){$("aiQuestionStatus").textContent="Complete the one-time Firebase AI + App Check setup in AI_SETUP.md before generating questions.";$("aiQuestionStatus").className="message error";$("aiGenerateBtn").disabled=true;return;}
