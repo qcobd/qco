@@ -56,11 +56,11 @@ async function gradeSubmission(attemptId,data,button){
  try{
   const attemptRef=doc(db,"submissions",attemptId),keyRef=doc(db,"quizKeys",data.quizId),keySnap=await getDoc(keyRef);
   if(!keySnap.exists())throw new Error("Answer key not found.");
-  const keys=keySnap.data().answers,answers=data.answers;
-  if(!Array.isArray(keys)||!Array.isArray(answers)||keys.length!==answers.length)throw new Error("Submission does not match the answer key.");
-  let correct=0;keys.forEach((key,i)=>{if(answers[i]===key)correct++});
-  const score=Math.round(correct/keys.length*100),resultRef=doc(db,"results",attemptId);
-  await setDoc(resultRef,{uid:data.uid,quizId:data.quizId,quizTitle:data.quizTitle||"QCO Quiz",score,correct,total:keys.length,submittedAt:data.submittedAt||serverTimestamp(),gradedAt:serverTimestamp()});
+  const keys=keySnap.data().answers,answers=data.answers,marks=Array.isArray(keySnap.data().marks)?keySnap.data().marks:keys.map(()=>1);
+  if(!Array.isArray(keys)||!Array.isArray(answers)||keys.length!==answers.length||marks.length!==keys.length)throw new Error("Submission does not match the answer key.");
+  let correct=0,earnedMarks=0;keys.forEach((key,i)=>{if(answers[i]===key){correct++;earnedMarks+=Number(marks[i])||1}});
+  const totalMarks=Number(keySnap.data().totalMarks)||marks.reduce((sum,value)=>sum+(Number(value)||1),0),score=Math.round(earnedMarks/totalMarks*100),resultRef=doc(db,"results",attemptId);
+  await setDoc(resultRef,{uid:data.uid,quizId:data.quizId,quizTitle:data.quizTitle||"QCO Quiz",score,correct,total:keys.length,earnedMarks,totalMarks,submittedAt:data.submittedAt||serverTimestamp(),gradedAt:serverTimestamp()});
   await updateDoc(attemptRef,{status:"graded",score,gradedAt:serverTimestamp()});
   alert("Result published: "+score+"% ("+correct+"/"+keys.length+").");await loadAdminData();
  }catch(e){alert("Could not publish result: "+e.message);button.disabled=false;button.textContent="Review & publish result"}
