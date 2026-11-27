@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b55"><title>Committee Registration | QCO</title><link rel="stylesheet" href="portal.css?v=committee-20261127"><style>
+body{font-family:Inter,"Hind Siliguri",Arial,sans-serif}.committee-wrap{width:min(760px,calc(100% - 32px));margin:42px auto 70px}.committee-head{background:#102b55;color:#fff;border-radius:12px;padding:30px}.committee-head h1{font-size:clamp(28px,5vw,42px);margin:12px 0}.committee-head p{color:#d5e1f2;line-height:1.8;font-size:14px}.committee-card{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:26px;margin-top:18px}.committee-form{display:grid;gap:15px}.committee-form label{display:grid;gap:7px;font-size:12px;font-weight:700;color:#536178}.committee-form input,.committee-form select,.committee-form textarea{width:100%;padding:13px;border:1px solid #e3e9f2;border-radius:6px;font:inherit;font-size:14px}.committee-form textarea{min-height:110px;resize:vertical}.committee-form .primary-btn{font-size:14px}.hint{font-size:11px;color:#718096;line-height:1.7}.committee-status{font-size:13px;line-height:1.7}.committee-status.error{color:#c83f49}.committee-status.success{color:#23845f}.required{color:#c83f49}
+</style></head><body>
+<header class="portal-header"><a class="portal-brand" href="index.html"><b>Q</b><span>QCO<small>QUIZ COMPETITION ORGANIZATION</small></span></a><a href="index.html" class="back-link">← Home</a></header>
+<main class="committee-wrap"><section class="committee-head"><span class="eyebrow" style="color:#b9cce8">QCO · VOLUNTEER & LEADERSHIP</span><h1>কমিটির সদস্য হতে আবেদন করুন</h1><p>QCO-এর কার্যক্রমে যুক্ত হয়ে নেতৃত্ব, teamwork ও জ্ঞানভিত্তিক উদ্যোগে অবদান রাখতে আগ্রহীরা আবেদন করতে পারবে। আবেদন জমা দেওয়ার আগে Student Portal-এ লগইন করতে হবে।</p></section>
+<section class="committee-card"><h2 style="color:#102b55;margin:0 0 8px">Committee Member Application</h2><p class="muted">সঠিক তথ্য দিয়ে ফর্মটি পূরণ করুন। আবেদন যাচাইয়ের পর QCO কর্তৃপক্ষ সিদ্ধান্ত জানাবে।</p>
+<form id="committeeForm" class="committee-form">
+<label>পূর্ণ নাম <span class="required">*</span><input id="fullName" maxlength="100" required autocomplete="name"></label>
+<label>ইমেইল <span class="required">*</span><input id="email" type="email" required readonly></label>
+<label>মোবাইল নম্বর <span class="required">*</span><input id="mobile" type="tel" maxlength="20" required placeholder="01XXXXXXXXX"></label>
+<label>শিক্ষাপ্রতিষ্ঠানের নাম <span class="required">*</span><input id="school" maxlength="120" required></label>
+<label>শ্রেণি <span class="required">*</span><input id="studentClass" maxlength="40" required placeholder="যেমন: Seven"></label>
+<label>কোন বিভাগে কাজ করতে আগ্রহী? <span class="required">*</span><select id="department" required><option value="">বিভাগ নির্বাচন করুন</option><option>Administration</option><option>Quiz & Question Management</option><option>Content & Research</option><option>IT & Media</option><option>Public Relations</option><option>Event Management</option><option>যেকোনো বিভাগ</option></select></label>
+<label>আগের অভিজ্ঞতা (ঐচ্ছিক)<textarea id="experience" maxlength="800" placeholder="ক্লাব, সংগঠন, স্বেচ্ছাসেবা বা নেতৃত্বের অভিজ্ঞতা"></textarea></label>
+<label>কেন QCO কমিটিতে যুক্ত হতে চান? <span class="required">*</span><textarea id="motivation" maxlength="1200" required placeholder="আপনার আগ্রহ ও অবদানের পরিকল্পনা লিখুন"></textarea></label>
+<p class="hint">আবেদন জমা দিলে আপনার তথ্য QCO-এর Admin Panel-এ পর্যালোচনার জন্য সংরক্ষিত হবে। আবেদন জমা মানেই কমিটিতে নির্বাচিত হওয়া নয়।</p>
+<button class="primary-btn" id="submitApplication" type="submit">আবেদন জমা দিন</button><p id="applicationStatus" class="committee-status" role="status"></p>
+</form></section></main><script type="module" src="committee-registration.js?v=1"></script></body></html>
