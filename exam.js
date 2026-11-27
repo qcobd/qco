@@ -7,7 +7,7 @@ if(!firebaseConfigured||!quizId){$("examStatus").textContent="Invalid or unavail
 else{
  const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
  onAuthStateChanged(auth,async user=>{
-  if(!user){$("examStatus").textContent="Sign in with your QCO student account to take this exam. ";const a=document.createElement("a");a.href="login.html";a.textContent="Student Login";$("examStatus").append(a);return}
+  if(!user){$("examStatus").textContent="Sign in with your QCO student account to take this exam. ";const a=document.createElement("a");a.href="login.html?next="+encodeURIComponent("exam.html?id="+encodeURIComponent(quizId));a.textContent="Student Login";$("examStatus").append(a);return}
   try{
    const profile=await getDoc(doc(db,"users",user.uid));if(!profile.exists()||profile.data().role!=="student"){await signOut(auth);$("examStatus").textContent="Only registered QCO students can take this exam.";return}
    const snap=await getDoc(doc(db,"quizzes",quizId));if(!snap.exists()||snap.data().published!==true){$("examStatus").textContent="This examination is not available.";return}
