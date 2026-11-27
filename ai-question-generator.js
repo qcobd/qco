@@ -1,3 +1,4 @@
+// QCO AI module build: 2026-11-27 - cache refresh
 import {getAI,getGenerativeModel,GoogleAIBackend} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-ai.js";
 import {collection,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-firestore.js";
 export function initAiQuestionGenerator(app,db,auth,onSaved,appCheckReady){
