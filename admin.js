@@ -5,6 +5,8 @@ import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstati
 import {QCO_RECAPTCHA_SITE_KEY} from "./ai-config.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
 const $=id=>document.getElementById(id),loginCard=$("adminLoginCard"),dashboard=$("adminDashboard"),msg=$("adminMessage");
+// Prevent native form navigation if the AI module has not loaded yet.
+$("aiQuestionForm")?.addEventListener("submit",e=>e.preventDefault(),{capture:true});
 let auth,db;
 if(!firebaseConfigured){msg.textContent="Firebase is not configured. Follow SETUP.md.";$("adminLoginForm").querySelector("button").disabled=true}
 else{
@@ -21,7 +23,7 @@ else{
   ? "Admin permission mismatch. Signed-in UID: "+check.uid+"; Firestore role: "+String(check.role)+". Expected role: admin. Project: "+firebaseConfig.projectId+"."
   : "Admin profile document not found. Signed-in UID: "+check.uid+". Checked path: users/"+check.uid+"; project: "+firebaseConfig.projectId+"; database: (default). Open browser console for QCO admin verification details.";
  msg.className="message error";await signOut(auth);return
-}loginCard.hidden=true;dashboard.hidden=false;const status=$("adminDashboardMessage");status.textContent="";try{await loadAdminData();const {initAiQuestionGenerator}=await import("./ai-question-generator.js");initAiQuestionGenerator(app,db,auth,loadAdminData,aiAppCheckReady);addQuestion()}catch(e){console.error("QCO admin data loading error:",e);status.textContent="Dashboard is open, but some data could not load: "+(e.code||e.message||"Unknown error")+". Please check the latest Firestore Rules.";status.className="message error"}}catch(e){console.error("QCO admin verification error:",e);msg.textContent="Could not verify administrator: "+(e.code||e.message||"Unknown error");}});
+}loginCard.hidden=true;dashboard.hidden=false;const status=$("adminDashboardMessage");status.textContent="";try{await loadAdminData();const {initAiQuestionGenerator}=await import("./ai-question-generator.js");initAiQuestionGenerator(app,db,auth,loadAdminData,aiAppCheckReady);addQuestion()}catch(e){console.error("QCO admin data loading error:",e);status.textContent="Dashboard is open, but the AI module could not load: "+(e.message||e.code||"Unknown error")+". This is a module-loading issue, not necessarily a Firestore Rules problem.";status.className="message error";const aiStatus=$("aiQuestionStatus");if(aiStatus){aiStatus.textContent="QCO AI could not start because its module failed to load. Reload the page and try again.";aiStatus.className="message error"}$("aiGenerateBtn").disabled=true}}catch(e){console.error("QCO admin verification error:",e);msg.textContent="Could not verify administrator: "+(e.code||e.message||"Unknown error");}});
  $("adminLoginForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;msg.textContent="Verifying account…";try{await signInWithEmailAndPassword(auth,$("adminEmail").value.trim(),$("adminPassword").value)}catch(err){console.error("QCO admin login error:",err);msg.textContent=err.code==="auth/invalid-credential"?"Invalid email or password.":(err.code||err.message||"Login failed. Please try again.");msg.className="message error"}finally{b.disabled=false}});
  $("adminLogout").addEventListener("click",()=>signOut(auth).then(()=>location.reload()));
  $("addQuestion").addEventListener("click",addQuestion);$("quizForm").addEventListener("submit",saveQuiz);$("downloadStudentsPdf").addEventListener("click",()=>window.print());
