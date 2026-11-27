@@ -5,8 +5,17 @@ import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstati
 import {QCO_RECAPTCHA_SITE_KEY} from "./ai-config.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
 const $=id=>document.getElementById(id),loginCard=$("adminLoginCard"),dashboard=$("adminDashboard"),msg=$("adminMessage");
-// Prevent native form navigation if the AI module has not loaded yet.
-$("aiQuestionForm")?.addEventListener("submit",e=>e.preventDefault(),{capture:true});
+// Keep the AI form inside the authenticated admin dashboard.
+$("aiQuestionForm")?.addEventListener("submit",e=>{
+ e.preventDefault();
+ e.stopImmediatePropagation();
+ if(!auth?.currentUser){
+  loginCard.hidden=false;
+  dashboard.hidden=true;
+  msg.textContent="Your admin session has expired. Please sign in again.";
+  msg.className="message error";
+ }
+},{capture:true});
 let auth,db;
 if(!firebaseConfigured){msg.textContent="Firebase is not configured. Follow SETUP.md.";$("adminLoginForm").querySelector("button").disabled=true}
 else{
