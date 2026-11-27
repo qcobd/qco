@@ -5,11 +5,12 @@ import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstati
 import {QCO_RECAPTCHA_SITE_KEY} from "./ai-config.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
 const $=id=>document.getElementById(id),loginCard=$("adminLoginCard"),dashboard=$("adminDashboard"),msg=$("adminMessage");
-// Keep the AI form inside the authenticated admin dashboard.
+// If the admin session has expired, stop submission and return to Admin Login.
+// For an authenticated admin, let the AI module handle the submit event normally.
 $("aiQuestionForm")?.addEventListener("submit",e=>{
- e.preventDefault();
- e.stopImmediatePropagation();
  if(!auth?.currentUser){
+  e.preventDefault();
+  e.stopImmediatePropagation();
   loginCard.hidden=false;
   dashboard.hidden=true;
   msg.textContent="Your admin session has expired. Please sign in again.";
