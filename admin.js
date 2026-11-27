@@ -5,11 +5,11 @@ import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstati
 import {QCO_RECAPTCHA_SITE_KEY} from "./ai-config.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
 const $=id=>document.getElementById(id),loginCard=$("adminLoginCard"),dashboard=$("adminDashboard"),msg=$("adminMessage");
-// If the admin session has expired, stop submission and return to Admin Login.
-// For an authenticated admin, let the AI module handle the submit event normally.
+// Never allow the AI form to trigger a native page navigation.
+// Authenticated submissions continue to the AI module's submit handler.
 $("aiQuestionForm")?.addEventListener("submit",e=>{
+ e.preventDefault();
  if(!auth?.currentUser){
-  e.preventDefault();
   e.stopImmediatePropagation();
   loginCard.hidden=false;
   dashboard.hidden=true;
