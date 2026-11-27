@@ -24,6 +24,12 @@ service cloud.firestore {
    allow delete: if isAdmin();
   }
   match /results/{resultId}{allow create,update,delete: if isAdmin();allow read: if isAdmin() || (signedIn() && resource.data.uid==request.auth.uid);}
+  match /committeeApplications/{applicationId}{
+   allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.status == "pending" && request.resource.data.keys().hasOnly(["uid","fullName","email","mobile","school","studentClass","preferredDepartment","experience","motivation","status","createdAt"]) && request.resource.data.fullName is string && request.resource.data.fullName.size() >= 2 && request.resource.data.fullName.size() <= 100 && request.resource.data.email == request.auth.token.email && request.resource.data.mobile is string && request.resource.data.mobile.size() <= 20 && request.resource.data.motivation is string && request.resource.data.motivation.size() <= 1200;
+   allow read: if isAdmin();
+   allow update: if isAdmin();
+   allow delete: if isAdmin();
+  }
   match /certificates/{certificateId}{
    allow get: if isAdmin() || resource.data.status == 'active';
    allow list: if isAdmin();
