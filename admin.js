@@ -1,7 +1,7 @@
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,getDocFromServer,collection,getDocs,query,where,limit,writeBatch,serverTimestamp,updateDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-auth.js";
+import {getFirestore,doc,getDoc,getDocFromServer,collection,getDocs,query,where,limit,writeBatch,serverTimestamp,updateDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-firestore.js";
+import {initializeAppCheck,ReCaptchaEnterpriseProvider} from "https://www.gstatic.com/firebasejs/11.8.0/firebase-app-check.js";
 import {QCO_RECAPTCHA_SITE_KEY} from "./ai-config.js";
 import {firebaseConfig,firebaseConfigured} from "./firebase-config.js";
 const $=id=>document.getElementById(id),loginCard=$("adminLoginCard"),dashboard=$("adminDashboard"),msg=$("adminMessage");
